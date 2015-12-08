@@ -197,8 +197,18 @@ out:
  */
 void __init acpi_boot_table_init(void)
 {
-	if (acpi_disabled)
+	/*
+	 * ACPI is disabled at this point. Leave it that way
+	 * if acpi=off was seen.
+	 */
+	if (param_acpi_off)
 		return;
+
+	/*
+	 * ACPI is disabled at this point. Enable it in order to parse
+	 * the ACPI tables and carry out sanity checks
+	 */
+	enable_acpi();
 
 	/*
 	 * If ACPI tables are initialized and FADT sanity checks passed,
