@@ -947,4 +947,15 @@ static inline bool acpi_console_check(struct acpi_device *adev, char *name,
 }
 #endif
 
+#ifdef CONFIG_ACPI
+int acpi_match_device_ids(struct acpi_device *device,
+			  const struct acpi_device_id *ids);
+#else
+static inline int acpi_match_device_ids(struct acpi_device *device,
+					const struct acpi_device_id *ids)
+{
+	return -ENOENT;
+}
+#endif
+
 #endif	/*_LINUX_ACPI_H*/
