@@ -192,8 +192,10 @@ static int __init param_setup_earlycon(char *buf)
 	if (!buf || !buf[0]) {
 		if (!acpi_disabled)
 			return 0;
+#ifdef CONFIG_OF_FLATTREE
 		else if (IS_ENABLED(CONFIG_OF_FLATTREE))
 			return early_init_dt_scan_chosen_serial();
+#endif
 	}
 
 	err = setup_earlycon(buf);
