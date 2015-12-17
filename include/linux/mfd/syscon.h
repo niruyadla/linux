@@ -52,7 +52,7 @@ static inline struct regmap *syscon_regmap_lookup_by_phandle(
 	return ERR_PTR(-ENOSYS);
 }
 static inline struct regmap *syscon_regmap_lookup_by_dev_property(struct device *dev,
-						      const char *propname);
+						      const char *propname)
 {
 	return ERR_PTR(-ENOSYS);
 }
