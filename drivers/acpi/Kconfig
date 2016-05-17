@@ -57,6 +57,9 @@ config ACPI_SYSTEM_POWER_STATES_SUPPORT
 config ACPI_CCA_REQUIRED
 	bool
 
+config IORT_TABLE
+	bool
+
 config ACPI_DEBUGGER
 	bool "AML debugger interface"
 	select ACPI_DEBUG
@@ -345,6 +348,14 @@ config ACPI_PCI_SLOT
 	  slots in the system.  This can help correlate PCI bus addresses,
 	  i.e., segment/bus/device/function tuples, with physical slots in
 	  the system.  If you are unsure, say N.
+
+config ACPI_PCI_HOST_GENERIC
+	bool
+	select PCI_ECAM
+	help
+	  Select this config option from the architecture Kconfig,
+	  if it is preferred to enable ACPI PCI host controller driver which
+	  has no arch-specific assumptions.
 
 config X86_PM_TIMER
 	bool "Power Management Timer Support" if EXPERT

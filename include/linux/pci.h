@@ -1165,7 +1165,11 @@ int __must_check pci_bus_alloc_resource(struct pci_bus *bus,
 			void *alignf_data);
 
 
+int pci_register_io_range(phys_addr_t addr, resource_size_t size);
+unsigned long pci_address_to_pio(phys_addr_t addr);
+phys_addr_t pci_pio_to_address(unsigned long pio);
 int pci_remap_iospace(const struct resource *res, phys_addr_t phys_addr);
+void pci_unmap_iospace(struct resource *res);
 
 static inline pci_bus_addr_t pci_bus_address(struct pci_dev *pdev, int bar)
 {
@@ -1481,6 +1485,8 @@ static inline int pci_request_regions(struct pci_dev *dev, const char *res_name)
 { return -EIO; }
 static inline void pci_release_regions(struct pci_dev *dev) { }
 
+static inline unsigned long pci_address_to_pio(phys_addr_t addr) { return -1; }
+
 static inline void pci_block_cfg_access(struct pci_dev *dev) { }
 static inline int pci_block_cfg_access_in_atomic(struct pci_dev *dev)
 { return 0; }
@@ -1716,7 +1722,10 @@ void pcibios_free_irq(struct pci_dev *dev);
 extern struct dev_pm_ops pcibios_pm_ops;
 #endif
 
-#ifdef CONFIG_PCI_MMCONFIG
+#if defined(CONFIG_PCI_MMCONFIG) || defined(CONFIG_ACPI_PCI_HOST_GENERIC)
+struct acpi_device;
+phys_addr_t pci_mcfg_lookup(struct acpi_device *device, u16 seg,
+			    struct resource *bus_res);
 void __init pci_mmcfg_early_init(void);
 void __init pci_mmcfg_late_init(void);
 #else
