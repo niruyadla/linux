@@ -521,7 +521,7 @@ CONFIG_HIFI_IPC_3660=y
 # CONFIG_HIFI_IPC_3650 is not set
 # CONFIG_HIFI_IPC_6250 is not set
 CONFIG_HISILICON_PLATFORM_MAILBOX=y
-
+CONFIG_HISI_MAILBOX=y
 #
 # hisi kernel API about remote processor communication
 #

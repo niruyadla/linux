@@ -11,6 +11,7 @@
 #include "hi3660-ion.dtsi"
 #include "hikey960-pinctrl.dtsi"
 #include "hi3660-gpu.dtsi"
+#include "hi3660-ipc.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
@@ -367,10 +368,15 @@
 			default-state = "off";
 		};
 	};
-
-	hisi_ipc: ipc@e896b000 {
-		status = "ok";
+	pclk: apb_pclk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <20000000>;
+		clock-output-names = "apb_pclk";
 	};
+	/*hisi_ipc: ipc@e896b000 {*/
+/*		status = "ok";*/
+	/*};*/
     hifidsp{
         status = "ok";
         compatible = "hisilicon,k3hifidsp";
@@ -379,7 +385,7 @@
     hisi_pctrl: pctrl@e8a09000 {
         compatible = "hisilicon,pctrl";
         reg = <0x0 0xe8a09000 0x0 0x1000>;
-        status = "ok";
+        status = "disabled";
     };
 
     hisi_crgctrl: crgctrl@fff35000 {

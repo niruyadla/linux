@@ -178,7 +178,7 @@ static struct hisi_rproc_info rproc_table[] = {
 	 .rproc_id = HISI_RPROC_LPM3_MBX30,
 	 .mbox_rp = HISI_MAILBOX_RP_LPM3_MBX30,
 	 },
-#endif
+
 	{
 	 .rproc_id = HISI_RPROC_ISP_MBX0,
 	 .mbox_rp = HISI_MAILBOX_RP_ISP_MBX0,
@@ -195,6 +195,7 @@ static struct hisi_rproc_info rproc_table[] = {
 	 .rproc_id = HISI_RPROC_ISP_MBX3,
 	 .mbox_rp = HISI_MAILBOX_RP_ISP_MBX3,
 	 }
+#endif
 };
 
 static inline struct hisi_rproc_info *find_rproc(rproc_id_t rproc_id)
@@ -306,13 +307,15 @@ int hisi_rproc_rx_register(rproc_id_t rproc_id, struct notifier_block *nb)
 {
 	struct hisi_rproc_info *rproc;
 	int ret = 0;
-    printk("Cadence_Linaro_Debug Entered %s added return here. Otherwise it is BUG_ON after this line, as HiFi DSP is not yet ready \n",__func__);
-    return ret;//TODO@Need to remove this line ,when we load hifi successfully to avoid the crash
+    printk("Cadence_Linaro_Debug hifi Entered %s added return here. Otherwise it is BUG_ON after this line, as HiFi DSP is not yet ready \n",__func__);
+   // return ret;//TODO@Need to remove this line ,when we load hifi successfully to avoid the crash
 	BUG_ON(!IS_READY());
+printk("Cadence_Linaro_Debug hifi IS_reday:%d\n",IS_READY());
+printk("Cadence_Linaro_Debug hifi rproc_id:%d\n",rproc_id);
 
 	rproc = find_rproc(rproc_id);
 	if (!rproc) {
-		RPROC_PR_ERR("invalid rproc xfer\n");
+		RPROC_PR_ERR("hifi invalid rproc xfer\n");
 		ret = -EINVAL;
 		goto out;
 	}
@@ -407,7 +410,7 @@ int hisi_rproc_init(void)
 
 	for (i = 0; i < sizeof(rproc_table) / sizeof(struct hisi_rproc_info); i++) {
 		rproc = &rproc_table[i];
-
+        printk("Cadence_Linaro_Debug hifi rprocid:%d\n",(int)rproc->rproc_id);
 		if (NULL == rproc->mbox) {
 			ATOMIC_INIT_NOTIFIER_HEAD(&rproc->notifier);
 
@@ -416,7 +419,7 @@ int hisi_rproc_init(void)
 
 			rproc->mbox = hisi_mbox_get(rproc->mbox_rp, &rproc->nb);
 			if (!rproc->mbox) {
-				/*RPROC_PR_ERR("\nrproc %d will get later \n",rproc->rproc_id);*/
+				RPROC_PR_ERR("\nhifi rproc %d will get later \n",rproc->rproc_id);
 				break;
 			}
 		}

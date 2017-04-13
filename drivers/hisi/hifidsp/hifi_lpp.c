@@ -1657,6 +1657,8 @@ void reset_audio_clk_work(struct work_struct *work)
 static int hifi_misc_probe (struct platform_device *pdev)
 {
 	int ret = OK;
+    unsigned char *dspon,*dsploadindicate;
+    int *ptr; 
 
 	IN_FUNCTION;
     printk("Cadence_Linaro_Debug Entered %s\n",__func__);
@@ -1675,7 +1677,19 @@ static int hifi_misc_probe (struct platform_device *pdev)
 	s_hifi_reboot_nb.priority = -1;
 	(void)register_reboot_notifier(&s_hifi_reboot_nb);
 
-
+dspon=(unsigned char*)ioremap_wc(DRV_DSP_POWER_STATUS_ADDR, 0x4);
+dsploadindicate=(unsigned char*)ioremap_wc(DRV_DSP_LOADED_INDICATE, 0x4);
+ptr=dspon;
+*ptr=DRV_DSP_POWER_ON;
+printk("Cadence_Linaro_Debug dspon0x%x\n",*ptr);
+ptr=dsploadindicate;
+*ptr=0x0;
+printk("Cadence_Linaro_Debug dspon0x%x\n",*ptr);
+if ((NULL != dspon) &&(NULL != dsploadindicate)) {
+    printk("Cadence_Linaro_Debug iounmap\n");
+	iounmap(dspon);
+	iounmap(dsploadindicate);
+}
 	s_misc_data.hifi_priv_base_virt = (unsigned char*)ioremap_wc(HIFI_BASE_ADDR, HIFI_UNSEC_REGION_SIZE);
 
 

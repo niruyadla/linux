@@ -1134,10 +1134,11 @@ static int hisi_mdev_probe(struct platform_device *pdev)
 	struct device_node *node = pdev->dev.of_node;
 	int mdev_num = 0;
 	int ret = 0;
-
+printk("Cadence_linaro_debug hifi %s\n",__func__);
 	if (!node) {
 		MDEV_TRACE("dts[%s] node not found\n", "hisilicon,HiIPCV230");
 		ret = -ENODEV;
+printk("Cadence_linaro_debug hifi 1111111%s\n",__func__);
 		goto out;
 	}
 
@@ -1145,6 +1146,7 @@ static int hisi_mdev_probe(struct platform_device *pdev)
 	if (!idev) {
 		MDEV_TRACE("no mem for ipc resouce\n");
 		ret = -ENOMEM;
+printk("Cadence_linaro_debug hifi 11111112%s\n",__func__);
 		goto out;
 	}
 
@@ -1152,12 +1154,14 @@ static int hisi_mdev_probe(struct platform_device *pdev)
 	if (ret) {
 		MDEV_TRACE("no mailboxes resources\n");
 		ret = -ENODEV;
+printk("Cadence_linaro_debug hifi 11111113%s\n",__func__);
 		goto free_idev;
 	}
 
 	mdev_res = kzalloc((sizeof(*mdev_res) * (mdev_num + 1)), GFP_KERNEL);
 	if (!mdev_res) {
 		ret = -ENOMEM;
+printk("Cadence_linaro_debug hifi 11111114%s\n",__func__);
 		goto free_idev;
 	}
 	mdev_res[mdev_num] = NULL;
@@ -1166,6 +1170,7 @@ static int hisi_mdev_probe(struct platform_device *pdev)
 	if (ret) {
 		MDEV_TRACE("can not get ipc resource\n");
 		ret = -ENODEV;
+printk("Cadence_linaro_debug hifi 11111115%s\n",__func__);
 		goto free_mdevs;
 	}
 
@@ -1173,6 +1178,7 @@ static int hisi_mdev_probe(struct platform_device *pdev)
 	if (ret) {
 		MDEV_TRACE("mdevs register failed\n");
 		ret = -ENODEV;
+printk("Cadence_linaro_debug hifi 11111116%s\n",__func__);
 		goto put_res;
 	}
 
