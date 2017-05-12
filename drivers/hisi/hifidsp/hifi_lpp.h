@@ -18,7 +18,23 @@ extern "C" {
 #endif
 
 #include <linux/list.h>
-#include "global_ddr_map.h"
+//lwp:no need include global_ddr_map.h, just define hifi's address config here
+//#include "global_ddr_map.h"
+
+//Added to avoid the crash
+#define CONFIG_HISI_FAMA
+
+#ifdef  CONFIG_HISI_FAMA
+#define HISI_RESERVED_HIFI_PHYMEM_BASE_FAMA              0x5A8900000
+#endif
+#define HISI_RESERVED_HIFI_PHYMEM_BASE                   0x88900000
+#define HISI_RESERVED_HIFI_PHYMEM_SIZE                   (0x980000)
+
+#ifdef  CONFIG_HISI_FAMA
+#define HISI_RESERVED_HIFI_DATA_PHYMEM_BASE_FAMA         0x5AAA00000
+#endif
+#define HISI_RESERVED_HIFI_DATA_PHYMEM_BASE              0x8AA00000
+#define HISI_RESERVED_HIFI_DATA_PHYMEM_SIZE              (0x380000)
 
 /* mailbox mail_len max */
 #define MAIL_LEN_MAX	(512)
@@ -47,34 +63,36 @@ extern "C" {
 #ifdef CONFIG_HISI_FAMA
 #define HIFI_BASE_ADDR                      (HISI_RESERVED_HIFI_DATA_PHYMEM_BASE_FAMA)
 #else
-//#define HIFI_BASE_ADDR                      (0x8AA00000)
+#define HIFI_BASE_ADDR                      (HISI_RESERVED_HIFI_DATA_PHYMEM_BASE)
 #endif
 
-#define HIFI_BASE_ADDR 0x5AAA00000ULL
+#ifdef CONFIG_HISI_FAMA
+#define HIFI_SECDDR_BASE_ADDR                  (HISI_RESERVED_HIFI_PHYMEM_BASE_FAMA)
+#else
+#define HIFI_SECDDR_BASE_ADDR                  (HISI_RESERVED_HIFI_PHYMEM_BASE)
+#endif
 
-//Kirin960
-/** secure region 9.5M ,nyadla modified based on kirin955 **/
-/* |~~~0x88900000~~~|~~~0x88930000~~~|~~~0x8894E000~~|~~~0x88D4E000~~~|~~~0x88D80000~~~| */
-/* |~OCRAM img bak~~|~~TCM img bak~~|~~~~IMG bak~~~~~|~~~sec reserve~~|~~HIFI RUNNING~~| */
-/* |~~~~~~192K~~~~~~|~~~~~120k~~~~~~|~~~~~~~4M ~~~~~~|~~~~~200k~~~~~~~|~~~~~~~5M~~~~~~~| */
-/* |~~~0x8892FFFF~~~|~~~0x8894DFFF~~|~~~0x88D4DFFF~~~|~~~0x88D7FFFF~~~|~~~0x89280000~~~| */
+/** for chicago only **/
+/** unsecured region 3.5M **/
+/* |~0x8AA00000~|~0x8AB32000~|~0x8AC32000~|~0x8ACB1000~|~0x8ACB2000~|~0x8ACC5000~|~0x8ACC6000~|~0x8ACC7000~|~0x8ACF9800~|~0x8AD09800~~| */
+/* |~Music data~|~~~PCM data~|~~hifi uart~|~panic stack|~icc debug~~|~flag data ~|DDR sec head|~~~AP NV ~~~|~AP&HIFI MB~|unsec reserve| */
+/* |~~~~~1.2M~~~|~~~~~1M~~~~~|~~~508k~~~~~|~~~~~~4k~~~~|~~~~76k~~~~~|~~~~~4k~~~~~|~~~~~4k~~~~~|~~~~202k~~~~|~~~~~64k~~~~|~~~~474k~~~~~| */
+/* |~0x8AB31fff~|~0x8AC31fff~|~0x8ACB0fff~|~0x8ACB1fff~|~0x8ACC4fff~|~0x8ACC5fff~|~0x8ACC6fff~|~0x8ACF97ff~|~0x8AD097ff~|~~0x8AD7ffff~| */
 
-/** unsecure region 3.5M,nyadla modified based on kirin955 **/
-/* |~0x8AA00000~|~0x8AB32000~|~0x8AC32000~|~0x8ACB1000~|~0x8ACB2000~|~0x8ACC5000~|~0x8AD2D000~|~~0x8AD2E000~~|~0x8AD2F000~|~0x8AD61800~|~~0x8AD71800~~|  */
-/* |~Music data~|~~~PCM data~|~~hifi uart~|~panic stack|~icc debug~~|~~~OM log~~~|~flag data ~|~DDR sec head~|~~~AP NV ~~~|~AP&HIFI MB~|~unsec reserve|  */
-/* |~~~~~1.2M~~~|~~~~~1M~~~~~|~~~508k~~~~~|~~~~~~4k~~~~|~~~~76k~~~~~|~~~~416k~~~~|~~~~~4k~~~~~|~~~~~~4k~~~~~~|~~~~202k~~~~|~~~~~64k~~~~|~~~~~~58k~~~~~|  */
-/* |~0x8AB31FFF~|~0x8AC31FFF~|~0x8ACB0FFF~|~0x8ACB1FFF~|~0x8ACC4FFF~|~0x8AD2CFFF~|~0x8AD2DFFF~|~~0x8AD2EFFF~~|~0x8AD617FF~|~0x8AD717FF~|~~0x8AD7FFFF~~|  */
+/** security region 9.5M **/
+/* |~~~0x88900000~~~|~~~0x88f00000~~~|~~~0x88f30000~~|~~~0x88f64000~~~| */
+/* |~~HIFI RUNNING~~|~OCRAM img bak~~|~~TCM img bak~~|~~~~IMG bak~~~~~| */
+/* |~~~~~~~6M~~~~~~~|~~~~~~192K~~~~~~|~~~~~208k~~~~~~|~~~~~~3.1M ~~~~~| */
+/* |~~~0x88efffff~~~|~~~0x88f2ffff~~~|~~~0x88f63fff~~|~~~0x89280000~~~| */
 
+/** for kirin950 **/
+/** unsecured region 3.5M **/
+/* |~0x34f00000~|~0x35032000~|~0x35132000~|~0x351b1000~|~0x351b2000~|~0x351c5000~|~~0x351c6000~~|~0x351c7000~|~0x351f9800~|~~0x35209800~~| */
+/* |~Music data~|~~~PCM data~|~~hifi uart~|~panic stack|~icc debug~~|~flag data ~|~DDR sec head~|~~~AP NV ~~~|~AP&HIFI MB~|~unsec reserve| */
+/* |~~~~~1.2M~~~|~~~~~1M~~~~~|~~~508k~~~~~|~~~~~~4k~~~~|~~~~76k~~~~~|~~~~~4k~~~~~|~~~~~~4k~~~~~~|~~~~202k~~~~|~~~~~64k~~~~|~~~~~~474k~~~~| */
+/* |~0x35031fff~|~0x35131fff~|~0x351b0fff~|~0x351b1fff~|~0x351c4fff~|~0x351c5fff~|~~0x351c6fff~~|~0x351f97ff~|~0x352097ff~|~~~0x3527ffff~| */
 
-//Kirin955
-/** unsecure region 3.5M **/
-/* |~0x34f00000~|~0x35032000~|~0x35132000~|~0x351b1000~|~0x351b2000~|~0x351c5000~|~0x3522d000~|~~0x3522e000~~|~0x3522f000~|~0x35261800~|~~0x35271800~~| */
-/* |~Music data~|~~~PCM data~|~~hifi uart~|~panic stack|~icc debug~~|~~~OM log~~~|~flag data ~|~DDR sec head~|~~~AP NV ~~~|~AP&HIFI MB~|~unsec reserve| */
-/* |~~~~~1.2M~~~|~~~~~1M~~~~~|~~~508k~~~~~|~~~~~~4k~~~~|~~~~76k~~~~~|~~~~416k~~~~|~~~~~4k~~~~~|~~~~~~4k~~~~~~|~~~~202k~~~~|~~~~~64k~~~~|~~~~~~58k~~~~~| */
-/* |~0x35031fff~|~0x35131fff~|~0x351b0fff~|~0x351b1fff~|~0x351c4fff~|~0x3522cfff~|~0x3522dfff~|~~0x3522efff~~|~0x352617ff~|~0x352717ff~|~~~0x3527ffff~| */
-
-
-/** secure region 9.5M **/
+/** security region 9.5M **/
 /* |~~~0x35280000~~~|~~~0x352b0000~~|~~~0x352ce000~~~|~~~0x356ce000~~~|~~~0x35700000~~~| */
 /* |~OCRAM img bak~~|~~TCM img bak~~|~~~~IMG bak~~~~~|~~~sec reserve~~|~~HIFI RUNNING~~| */
 /* |~~~~~~192K~~~~~~|~~~~~120k~~~~~~|~~~~~~~4M ~~~~~~|~~~~~200k~~~~~~~|~~~~~~~5M~~~~~~~| */
@@ -95,21 +113,20 @@ extern "C" {
 #define DRV_DSP_UART_TO_MEM_RESERVE_SIZE    (0x100)
 #define DRV_DSP_STACK_TO_MEM_SIZE           (0x1000)
 #define HIFI_ICC_DEBUG_SIZE                 (0x13000)
-#define HIFI_OM_LOG_SIZE                    (0x68000)
+
 #define HIFI_FLAG_DATA_SIZE                 (0x1000)
 #define HIFI_SEC_HEAD_SIZE                  (0x1000)
 #define HIFI_AP_NV_DATA_SIZE                (0x32800)
 #define HIFI_AP_MAILBOX_TOTAL_SIZE          (0x10000)
 #define HIFI_UNSEC_RESERVE_SIZE             (0xe800)
-
+#define HIFI_FLAG_DATA_ADDR             (HIFI_ICC_DEBUG_LOCATION + HIFI_ICC_DEBUG_SIZE)
 #define HIFI_UNSEC_BASE_ADDR            (HIFI_BASE_ADDR)
 #define HIFI_MUSIC_DATA_LOCATION        (HIFI_UNSEC_BASE_ADDR)
 #define PCM_PLAY_BUFF_LOCATION          (HIFI_MUSIC_DATA_LOCATION + HIFI_MUSIC_DATA_SIZE)
 #define DRV_DSP_UART_TO_MEM             (PCM_PLAY_BUFF_LOCATION + PCM_PLAY_BUFF_SIZE)
 #define DRV_DSP_STACK_TO_MEM            (DRV_DSP_UART_TO_MEM + DRV_DSP_UART_TO_MEM_SIZE)
 #define HIFI_ICC_DEBUG_LOCATION         (DRV_DSP_STACK_TO_MEM + DRV_DSP_STACK_TO_MEM_SIZE)
-#define HIFI_OM_LOG_ADDR                (HIFI_ICC_DEBUG_LOCATION + HIFI_ICC_DEBUG_SIZE)
-#define HIFI_FLAG_DATA_ADDR             (HIFI_OM_LOG_ADDR + HIFI_OM_LOG_SIZE)
+
 #define HIFI_SEC_HEAD_BACKUP            (HIFI_FLAG_DATA_ADDR + HIFI_FLAG_DATA_SIZE)
 #define HIFI_AP_NV_DATA_ADDR            (HIFI_SEC_HEAD_BACKUP + HIFI_SEC_HEAD_SIZE)
 #define HIFI_AP_MAILBOX_BASE_ADDR       (HIFI_AP_NV_DATA_ADDR + HIFI_AP_NV_DATA_SIZE)
@@ -139,25 +156,50 @@ extern "C" {
 #define HIFI_SEC_REGION_SIZE            (0x980000)
 #define HIFI_IMAGE_OCRAMBAK_SIZE        (0x30000)
 #ifdef HIFI_TCM_208K
+#define HIFI_RUN_SIZE                   (0x600000)
 #define HIFI_IMAGE_TCMBAK_SIZE          (0x34000)
-#define HIFI_IMAGE_SIZE                 (0x3ea000)
+#define HIFI_IMAGE_SIZE                 (0x31C000)
+#define HIFI_RUN_ITCM_BASE              (0xe8080000)
+#define HIFI_RUN_ITCM_SIZE              (0x9000)
+#define HIFI_RUN_DTCM_BASE              (0xe8058000)
+#define HIFI_RUN_DTCM_SIZE              (0x28000)
 #else
+#define HIFI_RUN_SIZE                   (0x500000)
 #define HIFI_IMAGE_TCMBAK_SIZE          (0x1E000)
 #define HIFI_IMAGE_SIZE                 (0x400000)
-#endif
 #define HIFI_SEC_RESERVE_SIZE           (0x32000)
-#define HIFI_RUN_SIZE                   (0x500000)
+#define HIFI_RUN_ITCM_BASE              (0xe8070000)
+#define HIFI_RUN_ITCM_SIZE              (0x6000)
+#define HIFI_RUN_DTCM_BASE              (0xe8058000)
+#define HIFI_RUN_DTCM_SIZE              (0x18000)
+#endif
 
-//#define HIFI_SEC_REGION_ADDR            (0x88900000)
-#define HIFI_SEC_REGION_ADDR 5A8900000ULL
+#ifdef HIFI_TCM_208K
+#define HIFI_SEC_REGION_ADDR            (HIFI_SECDDR_BASE_ADDR) /* chciago */
+#define HIFI_RUN_LOCATION               (HIFI_SEC_REGION_ADDR)
+#define HIFI_IMAGE_OCRAMBAK_LOCATION    (HIFI_RUN_LOCATION + HIFI_RUN_SIZE)
+#define HIFI_IMAGE_TCMBAK_LOCATION      (HIFI_IMAGE_OCRAMBAK_LOCATION + HIFI_IMAGE_OCRAMBAK_SIZE)
+#define HIFI_IMAGE_LOCATION             (HIFI_IMAGE_TCMBAK_LOCATION + HIFI_IMAGE_TCMBAK_SIZE)
+#else
+#define HIFI_SEC_REGION_ADDR            (HIFI_BASE_ADDR + HIFI_UNSEC_REGION_SIZE) /* austin dallas */
 #define HIFI_IMAGE_OCRAMBAK_LOCATION    (HIFI_SEC_REGION_ADDR)
 #define HIFI_IMAGE_TCMBAK_LOCATION      (HIFI_IMAGE_OCRAMBAK_LOCATION + HIFI_IMAGE_OCRAMBAK_SIZE)
 #define HIFI_IMAGE_LOCATION             (HIFI_IMAGE_TCMBAK_LOCATION + HIFI_IMAGE_TCMBAK_SIZE)
 #define HIFI_SEC_RESERVE_ADDR           (HIFI_IMAGE_LOCATION + HIFI_IMAGE_SIZE)
 #define HIFI_RUN_LOCATION               (HIFI_SEC_RESERVE_ADDR + HIFI_SEC_RESERVE_SIZE)
+#endif
 
 #define HIFI_OCRAM_BASE_ADDR                    (0xE8000000)
 #define HIFI_TCM_BASE_ADDR                      (0xE8058000)
+#define HIFI_RUN_DDR_REMAP_BASE         (0xC0000000)
+
+#define HIFI_TCM_PHY_BEGIN_ADDR         (HIFI_TCM_BASE_ADDR)
+#define HIFI_TCM_PHY_END_ADDR           (HIFI_TCM_PHY_BEGIN_ADDR + HIFI_TCM_SIZE - 1)
+#define HIFI_TCM_SIZE                   (HIFI_RUN_ITCM_SIZE + HIFI_RUN_DTCM_SIZE)
+
+#define HIFI_OCRAM_PHY_BEGIN_ADDR       (HIFI_OCRAM_BASE_ADDR)
+#define HIFI_OCRAM_PHY_END_ADDR         (HIFI_OCRAM_PHY_BEGIN_ADDR + HIFI_OCRAM_SIZE - 1)
+#define HIFI_OCRAM_SIZE                 (HIFI_IMAGE_OCRAMBAK_SIZE)
 
 #define SIZE_PARAM_PRIV                         (206408) /*refer from function dsp_nv_init in dsp_soc_para_ctl.c  */
 #define HIFI_SYS_MEM_ADDR                       (HIFI_RUN_LOCATION)
