@@ -38,6 +38,7 @@
 #include "dsm_pub.h"
 #include <linux/hisi/rdr_pub.h>
 #include <linux/delay.h>
+//#include "bsp_drv_ipc.h"
 
 #ifdef __cplusplus
 #if __cplusplus
@@ -51,7 +52,7 @@ HI_DECLARE_SEMAPHORE(hifi_log_sema);
 /*lint +e773*/
 struct hifi_om_s g_om_data;
 static struct proc_dir_entry *hifi_debug_dir = NULL;
-
+static int read_hifi_shared_addr(void);
 #define MAX_LEVEL_STR_LEN 32
 #define UNCONFIRM_ADDR (0)
 static struct hifi_dsp_dump_info s_dsp_dump_info[] = {
@@ -792,6 +793,8 @@ static ssize_t hifi_dsp_fault_inject_store(struct file *file, const char __user 
 		loge("msg: %s send to hifi fail: %d\n", cmd_str, ret);
 		return ret;
 	}
+    read_hifi_shared_addr();
+//    BSP_RegWr(BSP_IPC_CPU_RAW_INT(IPC_CORE_HiFi),3);
 
 	return size;
 }
@@ -942,20 +945,19 @@ static int read_hifi_shared_addr(void)
 	unsigned int *read_hifi_shared_addr = NULL;
 	int ret = 0;
     loge(" %s():Enter \n",__func__);
-    //If we put 0x8ACC5000 addr kernel panic is observed at ioremap.c line no:58 ./arch/arm64/mm/ioremap.c.
-    read_hifi_shared_addr = ioremap_wc(0x5AACC5000,50);
+    read_hifi_shared_addr = ioremap_wc(0x8B300000,50);
     if ( NULL == read_hifi_shared_addr ) {
 		loge(" %s(): read_hifi_shared_addr ioremap_wc failed\n", __func__);
 	}
 	else {
-        loge(" 0x8ACC5000:0x%x \n",readl(read_hifi_shared_addr) );
-
-        //sleep for 2 secs
-        loge(" %s(): Waiting for 2 secs\n",__func__);
-        msleep(2000);
-
-        loge(" 0x8ACF9800:0x%x\n",readl(read_hifi_shared_addr));
-
+        loge(" 0x8B300000:0x%x \n",readl(read_hifi_shared_addr) );
+        loge(" 0x8B300004:0x%x \n",readl(read_hifi_shared_addr+1) );
+        loge(" 0x8B300008:0x%x \n",readl(read_hifi_shared_addr+2) );
+        loge(" 0x8B30000c:0x%x \n",readl(read_hifi_shared_addr+3) );
+        loge(" 0x8B300010:0x%x \n",readl(read_hifi_shared_addr+4) );
+        loge(" 0x8B300014:0x%x \n",readl(read_hifi_shared_addr+5) );
+        loge(" 0x8B300018:0x%x \n",readl(read_hifi_shared_addr+6) );
+        loge(" 0x8B30001c:0x%x \n",readl(read_hifi_shared_addr+7) );
 		iounmap(read_hifi_shared_addr);
 		read_hifi_shared_addr = NULL;
 	}
