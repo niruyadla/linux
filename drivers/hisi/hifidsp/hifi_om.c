@@ -433,11 +433,6 @@ int hifi_get_dmesg(void __user *arg)
 	}
 	logi("get msg: len:%d from:%p to:%p.\n", len, s_dsp_dump_info[0].data_addr, dump_info_user_buf);
 
-	g_om_data.dsp_log_addr = (char*)ioremap_wc(DRV_DSP_UART_TO_MEM, DRV_DSP_UART_TO_MEM_SIZE);
-	if (NULL == g_om_data.dsp_log_addr) {
-		loge("dsp log ioremap Error.\n");
-		return 0;
-	}
 	s_dsp_dump_info[0].data_addr = g_om_data.dsp_log_addr;
 
 	ret = copy_to_user(dump_info_user_buf, s_dsp_dump_info[0].data_addr, len);
@@ -454,11 +449,6 @@ int hifi_get_dmesg(void __user *arg)
 		} else {
 			memset(s_dsp_dump_info[0].data_addr, 0, s_dsp_dump_info[0].data_len);
 		}
-	}
-
-	if(g_om_data.dsp_log_addr) {
-		iounmap(g_om_data.dsp_log_addr);
-		g_om_data.dsp_log_addr = NULL;
 	}
 
 	return (int)len;
@@ -500,11 +490,6 @@ static void hifi_dump_dsp(DUMP_DSP_INDEX index)
 
 	hifi_get_log_signal();
 
-	g_om_data.dsp_log_addr = (char*)ioremap_wc(DRV_DSP_UART_TO_MEM, DRV_DSP_UART_TO_MEM_SIZE);
-	if (NULL == g_om_data.dsp_log_addr) {
-		loge("dsp log remap fail.\n");
-		goto END;
-	}
 
 	s_dsp_dump_info[NORMAL_LOG].data_addr = g_om_data.dsp_log_addr + DRV_DSP_UART_TO_MEM_RESERVE_SIZE;
 	s_dsp_dump_info[PANIC_LOG].data_addr  = g_om_data.dsp_log_addr + DRV_DSP_UART_TO_MEM_RESERVE_SIZE;
@@ -603,10 +588,6 @@ END:
 	}
 	set_fs(fs);
 
-	if (NULL != g_om_data.dsp_log_addr) {
-		iounmap(g_om_data.dsp_log_addr);
-		g_om_data.dsp_log_addr = NULL;
-	}
 
 	if((index == OCRAM_BIN || index == TCM_BIN) && (NULL != s_dsp_dump_info[index].data_addr))
 	{
@@ -707,11 +688,92 @@ static const struct file_operations hifi_debug_proc_ops = {
 	.write = hifi_debug_level_store,
 };
 
+#define HIKEY_MSG_HEAD_PROTECT_WORD 0xffff1234
+#define HIKEY_MSG_BODY_PROTECT_WORD 0xffff4321
+
+#define HIKEY_AP2DSP_MSG_QUEUE_ADDR HIFI_HIKEY_SHARE_ADDR
+#define HIKEY_AP2DSP_MSG_QUEUE_SIZE 0x1800
+#define HIKEY_DSP2AP_MSG_QUEUE_ADDR (HIKEY_AP2DSP_MSG_QUEUE_ADDR + HIKEY_AP2DSP_MSG_QUEUE_SIZE)
+#define HIKEY_DSP2AP_MSG_QUEUE_SIZE 0x1800
+
+struct hikey_ap2dsp_msg_head {
+	unsigned int head_protect_word;
+	unsigned int msg_num;
+	unsigned int read_pos;
+	unsigned int write_pos;
+};
+
+struct hikey_ap2dsp_msg_body {
+	unsigned short msg_id;
+	unsigned short msg_len;
+	char msg_content[0];
+};
+
+static struct hikey_ap2dsp_msg_head *msg_head = NULL;
+static void hikey_init_share_mem(char * share_mem_addr, unsigned int share_mem_size)
+{
+	if (!share_mem_addr) {
+		loge("share memory is null\n");
+		return;
+	}
+
+	memset(share_mem_addr, 0, share_mem_size);
+	msg_head = (struct hikey_ap2dsp_msg_head *)share_mem_addr;
+	msg_head->head_protect_word = HIKEY_MSG_HEAD_PROTECT_WORD;
+	msg_head->msg_num = 0;
+	msg_head->read_pos = (unsigned int)sizeof(struct hikey_ap2dsp_msg_head);
+	msg_head->write_pos = msg_head->read_pos;
+}
+
+static void hikey_ap2dsp_write_msg(struct hikey_ap2dsp_msg_body * hikey_msg)
+{
+	unsigned int size_to_bottom = 0;
+	unsigned int write_size = 0;
+loge("Enter %s\n",__func__);
+	if (!msg_head) {
+		loge("hikey share memory not init\n");
+		return;
+	}
+
+	if (!hikey_msg) {
+		loge("msg is null\n");
+		return;
+	}
+
+	if (msg_head->head_protect_word != HIKEY_MSG_HEAD_PROTECT_WORD) {
+		loge("hikey msg head protect word error,0x%x\n", msg_head->head_protect_word);
+		return;
+	}
+
+	write_size = hikey_msg->msg_len + sizeof(struct hikey_ap2dsp_msg_body);
+	size_to_bottom = (HIKEY_DSP2AP_MSG_QUEUE_SIZE - msg_head->write_pos);
+
+	if (write_size >= HIKEY_DSP2AP_MSG_QUEUE_SIZE) {
+		loge("msg is too long\n");
+		return;
+	}
+
+	if (size_to_bottom > write_size) {
+		memcpy((char *)((char *)msg_head + msg_head->write_pos), hikey_msg, write_size);
+		msg_head->write_pos += write_size;
+	} else {
+		memcpy((char *)((char *)msg_head + msg_head->write_pos), hikey_msg, size_to_bottom);
+		memcpy((char *)((char *)msg_head + sizeof(struct hikey_ap2dsp_msg_head)),
+				(char *)hikey_msg + size_to_bottom, write_size - size_to_bottom);
+		msg_head->write_pos = sizeof(struct hikey_ap2dsp_msg_head) + (write_size - size_to_bottom);
+	}
+
+	msg_head->msg_num++;
+loge("Exit %s\n",__func__);
+}
+
+
 static int hifi_send_str_todsp(const char* cmd_str, size_t size)
 {
 	int           ret     = OK;
 	unsigned int  msg_len = 0;
 	hifi_str_cmd *pcmd    = NULL;
+    struct hikey_ap2dsp_msg_body * hikey_msg = NULL;
 
 	BUG_ON(cmd_str == NULL);
 
@@ -727,6 +789,9 @@ static int hifi_send_str_todsp(const char* cmd_str, size_t size)
 	pcmd->msg_id = ID_AP_AUDIO_STR_CMD;
 	pcmd->str_len = size;
 	strncpy(pcmd->str, cmd_str, size);
+	hikey_msg = (struct hikey_ap2dsp_msg_body *)pcmd;
+
+	hikey_ap2dsp_write_msg(hikey_msg);
 
 	ret = (int)mailbox_send_msg(MAILBOX_MAILCODE_ACPU_TO_HIFI_MISC, pcmd, msg_len);
 
@@ -943,18 +1008,18 @@ static int read_hifi_shared_addr(void)
 	int ret = 0;
     loge(" %s():Enter \n",__func__);
     //If we put 0x8ACC5000 addr kernel panic is observed at ioremap.c line no:58 ./arch/arm64/mm/ioremap.c.
-    read_hifi_shared_addr = ioremap_wc(0x5AACC5000,50);
+    read_hifi_shared_addr = ioremap_wc(0x8AA00000,50);
     if ( NULL == read_hifi_shared_addr ) {
 		loge(" %s(): read_hifi_shared_addr ioremap_wc failed\n", __func__);
 	}
 	else {
-        loge(" 0x8ACC5000:0x%x \n",readl(read_hifi_shared_addr) );
+        loge(" 0x8AA00000:0x%x \n",readl(read_hifi_shared_addr) );
 
         //sleep for 2 secs
         loge(" %s(): Waiting for 2 secs\n",__func__);
         msleep(2000);
 
-        loge(" 0x8ACF9800:0x%x\n",readl(read_hifi_shared_addr));
+        loge(" 0x8AA00000:0x%x\n",readl(read_hifi_shared_addr));
 
 		iounmap(read_hifi_shared_addr);
 		read_hifi_shared_addr = NULL;
@@ -1363,6 +1428,7 @@ void hifi_om_init(struct platform_device *pdev, unsigned char* hifi_priv_base_vi
 
 	*(g_om_data.dsp_exception_no) = ~0;
 	g_om_data.pre_exception_no = ~0;
+    hikey_init_share_mem((char *)(hifi_priv_base_virt + (HIFI_HIKEY_SHARE_MEM_ADDR- HIFI_UNSEC_BASE_ADDR)), (unsigned int)HIFI_HIKEY_SHARE_SIZE);
 
 	s_dsp_dump_info[NORMAL_BIN].data_addr = g_om_data.dsp_bin_addr;
 	s_dsp_dump_info[PANIC_BIN].data_addr  = g_om_data.dsp_bin_addr;
@@ -1409,11 +1475,6 @@ void hifi_om_deinit(struct platform_device *dev)
 	if (NULL != g_om_data.dsp_time_stamp) {
 		iounmap(g_om_data.dsp_time_stamp);
 		g_om_data.dsp_time_stamp = NULL;
-	}
-
-	if (NULL != g_om_data.dsp_log_addr) {
-		iounmap(g_om_data.dsp_log_addr);
-		g_om_data.dsp_log_addr = NULL;
 	}
 
 	hifi_remove_procfs();
