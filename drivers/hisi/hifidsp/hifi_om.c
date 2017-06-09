@@ -51,7 +51,7 @@ HI_DECLARE_SEMAPHORE(hifi_log_sema);
 /*lint +e773*/
 struct hifi_om_s g_om_data;
 static struct proc_dir_entry *hifi_debug_dir = NULL;
-
+static int read_hifi_shared_addr(void);
 #define MAX_LEVEL_STR_LEN 32
 #define UNCONFIRM_ADDR (0)
 static struct hifi_dsp_dump_info s_dsp_dump_info[] = {
@@ -858,6 +858,7 @@ static ssize_t hifi_dsp_fault_inject_store(struct file *file, const char __user 
 		return ret;
 	}
 
+    read_hifi_shared_addr();
 	return size;
 }
 
@@ -1004,25 +1005,20 @@ end:
 
 static int read_hifi_shared_addr(void)
 {
-	unsigned int *read_hifi_shared_addr = NULL;
+	unsigned int *read_hifi_addr = NULL;
 	int ret = 0;
+    int i=0;
     loge(" %s():Enter \n",__func__);
     //If we put 0x8ACC5000 addr kernel panic is observed at ioremap.c line no:58 ./arch/arm64/mm/ioremap.c.
-    read_hifi_shared_addr = ioremap_wc(0x8AA00000,50);
-    if ( NULL == read_hifi_shared_addr ) {
+    read_hifi_addr = ioremap_wc(HIFI_MUSIC_DATA_LOCATION,100);
+    if ( NULL == read_hifi_addr ) {
 		loge(" %s(): read_hifi_shared_addr ioremap_wc failed\n", __func__);
 	}
 	else {
-        loge(" 0x8AA00000:0x%x \n",readl(read_hifi_shared_addr) );
-
-        //sleep for 2 secs
-        loge(" %s(): Waiting for 2 secs\n",__func__);
-        msleep(2000);
-
-        loge(" 0x8AA00000:0x%x\n",readl(read_hifi_shared_addr));
-
-		iounmap(read_hifi_shared_addr);
-		read_hifi_shared_addr = NULL;
+        for(i=0;i<10;i++)
+            loge(" HIFI_MUSIC_DATA_LOCATION(0x8B300000)+%d:0x%x \n",i,readl(read_hifi_addr+i) );
+		iounmap(read_hifi_addr);
+		read_hifi_addr = NULL;
 	}
 	loge(" %s():Exit\n",__func__);
 	return ret;
@@ -1182,10 +1178,10 @@ static ssize_t hifi_dsp_dump_log_show(struct file *file, char __user *buf,
 
 	/*Do not create the /data/hisi_logs/running_trace/hifi_log/ folder*/
 	/*and files within when not in internal beta phase*/
-	if (EDITION_INTERNAL_BETA != bbox_check_edition()) {
+	/*if (EDITION_INTERNAL_BETA != bbox_check_edition()) {
 		loge("Not internal beta, Do not dump hifi\n");
 		return ret;
-	}
+	}*/
 
 	ret =  simple_read_from_buffer(buf, size, ppos,
 			LOG_PATH_HIFI_LOG, (strlen(LOG_PATH_HIFI_LOG) + 1));
@@ -1396,7 +1392,7 @@ void hifi_om_init(struct platform_device *pdev, unsigned char* hifi_priv_base_vi
 
 	BUG_ON(NULL == hifi_priv_base_virt);
 	BUG_ON(NULL == hifi_priv_base_phy);
-
+    logi("Enter %s\n",__func__);
 	memset(&g_om_data, 0, sizeof(struct hifi_om_s));
 
 	g_om_data.dev = &pdev->dev;
@@ -1406,6 +1402,7 @@ void hifi_om_init(struct platform_device *pdev, unsigned char* hifi_priv_base_vi
 	g_om_data.dsp_time_stamp = (unsigned int*)ioremap(SYS_TIME_STAMP_REG, 0x4);
 	if (NULL == g_om_data.dsp_time_stamp) {
 		printk("time stamp reg ioremap Error.\n");//can't use logx
+    logi("Exit -1 %s\n",__func__);
 		return;
 	}
 
@@ -1428,8 +1425,8 @@ void hifi_om_init(struct platform_device *pdev, unsigned char* hifi_priv_base_vi
 
 	*(g_om_data.dsp_exception_no) = ~0;
 	g_om_data.pre_exception_no = ~0;
-    hikey_init_share_mem((char *)(hifi_priv_base_virt + (HIFI_HIKEY_SHARE_MEM_ADDR- HIFI_UNSEC_BASE_ADDR)), (unsigned int)HIFI_HIKEY_SHARE_SIZE);
 
+    hikey_init_share_mem((char *)(hifi_priv_base_virt + (HIFI_HIKEY_SHARE_MEM_ADDR- HIFI_UNSEC_BASE_ADDR)), (unsigned int)HIFI_HIKEY_SHARE_SIZE);
 	s_dsp_dump_info[NORMAL_BIN].data_addr = g_om_data.dsp_bin_addr;
 	s_dsp_dump_info[PANIC_BIN].data_addr  = g_om_data.dsp_bin_addr;
 
@@ -1456,7 +1453,6 @@ void hifi_om_init(struct platform_device *pdev, unsigned char* hifi_priv_base_vi
 			INIT_LIST_HEAD(&work_info[i].ctl.list);
 		}
 	}
-
 	OUT_FUNCTION;
 	return;
 }
