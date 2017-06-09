@@ -27,13 +27,13 @@ extern "C" {
 #ifdef  CONFIG_HISI_FAMA
 #define HISI_RESERVED_HIFI_PHYMEM_BASE_FAMA              0x5A8900000
 #endif
-#define HISI_RESERVED_HIFI_PHYMEM_BASE                   0x88900000
+#define HISI_RESERVED_HIFI_PHYMEM_BASE                    0x89200000
 #define HISI_RESERVED_HIFI_PHYMEM_SIZE                   (0x980000)
 
 #ifdef  CONFIG_HISI_FAMA
 #define HISI_RESERVED_HIFI_DATA_PHYMEM_BASE_FAMA         0x5AAA00000
 #endif
-#define HISI_RESERVED_HIFI_DATA_PHYMEM_BASE              0x8AA00000
+#define HISI_RESERVED_HIFI_DATA_PHYMEM_BASE              0x8B300000
 #define HISI_RESERVED_HIFI_DATA_PHYMEM_SIZE              (0x380000)
 
 /* mailbox mail_len max */
