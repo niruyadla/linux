@@ -5,6 +5,13 @@
  *
  */
 
+/*
+ *
+ * Modifications made by Cadence Design Systems, Inc.  06/21/2017
+ * Copyright (C) 2017 Cadence Design Systems, Inc.All rights reserved worldwide.
+ *
+ */
+
 /dts-v1/;
 
 #include "hi3660.dtsi"
@@ -12,6 +19,7 @@
 #include "hikey960-pinctrl.dtsi"
 #include "hi3660-gpu.dtsi"
 #include "hi3660-drm.dtsi"
+#include "hisi_3660_ipc.dtsi"
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/input/input.h>
@@ -64,6 +72,11 @@
 			reg = <0x0 0x20A00000 0x0 0x100000>;
 		};
 
+		hifi-base {
+			reg = <0x0 0x89200000 0x0 0x980000>;
+			no-map;
+		};
+
 		lpmx-core {
 			reg = <0x0 0x89280000 0x0 0x100000>;
 			no-map;
@@ -71,6 +84,11 @@
 
 		lpmcu {
 			reg = <0x0 0x89380000 0x0 0x40000>;
+			no-map;
+		};
+
+		hifi-data {
+			reg = <0x0 0x8B300000 0x0 0x380000>;
 			no-map;
 		};
 	};
@@ -363,6 +381,17 @@
 			linux,default-trigger = "hci0rx";
 			default-state = "off";
 		};
+	};
+
+	pclk: apb_pclk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <20000000>;
+		clock-output-names = "apb_pclk";
+	};
+
+	hifidsp {
+		compatible = "hisilicon,k3hifidsp";
 	};
 };
 
