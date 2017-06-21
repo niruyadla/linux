@@ -6,6 +6,9 @@
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
  * published by the Free Software Foundation.
+ *
+ * Modifications made by Cadence Design Systems, Inc.  06/21/2017
+ * Copyright (C) 2017 Cadence Design Systems, Inc.All rights reserved worldwide.
  */
 
 #include <linux/kernel.h>
@@ -43,6 +46,7 @@
 HI_DECLARE_SEMAPHORE(hifi_log_sema);
 struct hifi_om_s g_om_data;
 static struct proc_dir_entry *hifi_debug_dir = NULL;
+
 #define MAX_LEVEL_STR_LEN 32
 #define UNCONFIRM_ADDR (0)
 static struct hifi_dsp_dump_info s_dsp_dump_info[] = {
@@ -757,6 +761,40 @@ static void hikey_ap2dsp_write_msg(struct hikey_ap2dsp_msg_body *hikey_msg)
 	loge("Exit %s\n", __func__);
 }
 
+int send_pcm_data_to_dsp(void *buf, unsigned int size)
+{
+	int           ret     = OK;
+	unsigned int  msg_len = 0;
+	hifi_str_cmd *pcmd    = NULL;
+	unsigned char *music_buf = NULL;
+	struct hikey_ap2dsp_msg_body *hikey_msg = NULL;
+
+	msg_len = sizeof(hifi_str_cmd) + 100;
+
+	if (WARN_ON(size > HIFI_MUSIC_DATA_SIZE))
+		return -EINVAL;
+
+	pcmd = (hifi_str_cmd *)kmalloc(msg_len, GFP_ATOMIC);
+
+	if (!pcmd) {
+		loge("cmd malloc is null\n");
+		return -ENOMEM;
+	}
+
+	pcmd->msg_id = ID_AP_AUDIO_STR_CMD;
+	pcmd->str_len = sprintf(pcmd->str, "pcm_gain 0x%08x 0x%08x", HIFI_MUSIC_DATA_LOCATION, size);
+	hikey_msg = (struct hikey_ap2dsp_msg_body *)pcmd;
+	music_buf = (unsigned char *)ioremap_wc(HIFI_MUSIC_DATA_LOCATION, HIFI_MUSIC_DATA_SIZE);
+	memcpy(music_buf, buf, size);
+	iounmap(music_buf);
+	hikey_ap2dsp_write_msg(hikey_msg);
+	ret = (int)mailbox_send_msg(MAILBOX_MAILCODE_ACPU_TO_HIFI_MISC, pcmd, msg_len);
+	music_buf = (unsigned char *)ioremap_wc(PCM_PLAY_BUFF_LOCATION, PCM_PLAY_BUFF_SIZE);
+	memcpy(buf, music_buf, size);
+	iounmap(music_buf);
+	kfree(pcmd);
+	return ret;
+}
 
 
 static int hifi_send_str_todsp(const char* cmd_str, size_t size)
@@ -764,6 +802,7 @@ static int hifi_send_str_todsp(const char* cmd_str, size_t size)
 	int           ret     = OK;
 	unsigned int  msg_len = 0;
 	hifi_str_cmd *pcmd    = NULL;
+/*	unsigned char buf[8] = {0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88};*/
 	struct hikey_ap2dsp_msg_body *hikey_msg = NULL;
 	BUG_ON(cmd_str == NULL);
 
@@ -785,7 +824,8 @@ static int hifi_send_str_todsp(const char* cmd_str, size_t size)
 	ret = (int)mailbox_send_msg(MAILBOX_MAILCODE_ACPU_TO_HIFI_MISC, pcmd, msg_len);
 
 	kfree(pcmd);
-
+	/*test code*/
+/*	send_pcm_data_to_dsp(buf, 8);*/
 	return ret;
 }
 
