@@ -86,6 +86,7 @@ struct hifi_misc_priv {
 	struct completion	completion;
 	wait_queue_head_t	proc_waitq;
 	wait_queue_head_t	pcm_read_waitq;
+	wait_queue_head_t	xaf_waitq;
 
 	int	wait_flag;
 	int	pcm_read_wait_flag;
@@ -103,7 +104,7 @@ struct hifi_misc_priv {
 
 };
 static struct hifi_misc_priv s_misc_data;
-
+extern bool hasData;
 static struct notifier_block s_hifi_sr_nb;
 static struct notifier_block s_hifi_reboot_nb;
 static atomic_t volatile s_hifi_in_suspend = ATOMIC_INIT(0);
@@ -1008,6 +1009,22 @@ static int hifi_misc_mmap(struct file *file, struct vm_area_struct *vma)
 	return ret;
 }
 
+static unsigned int hifi_misc_poll(struct file *filp, poll_table *wait)
+{
+	unsigned int mask = 0;
+
+	logi("Enter hifi_misc_poll.\n");
+	/*put the queue into poll_table*/
+	poll_wait(filp, &(s_misc_data.xaf_waitq), wait);
+
+	if (hasData) {
+		mask |= POLLIN | POLLRDNORM;
+		logi("notify read  process\n");
+	}
+
+	return mask;
+}
+
 static ssize_t hifi_misc_proc_read(struct file *file, char __user *buf,
 								   size_t count, loff_t *ppos)
 {
@@ -1172,6 +1189,7 @@ static const struct file_operations hifi_misc_fops = {
 	.unlocked_ioctl = hifi_misc_ioctl,
 	.compat_ioctl   = hifi_misc_ioctl32,
 	.mmap			= hifi_misc_mmap,
+	.poll			= hifi_misc_poll,
 };
 
 static struct miscdevice hifi_misc_device = {
@@ -1435,6 +1453,9 @@ static int hifi_misc_probe (struct platform_device *pdev)
 
 	init_waitqueue_head(&s_misc_data.proc_waitq);
 	s_misc_data.wait_flag = 0;
+
+	/*xaf wait*/
+	init_waitqueue_head(&s_misc_data.xaf_waitq);
 
 	init_waitqueue_head(&s_misc_data.pcm_read_waitq);
 	s_misc_data.pcm_read_wait_flag = false;
