@@ -877,83 +877,113 @@ static long hifi_misc_ioctl(struct file *fd, unsigned int cmd,
 	}
 
 	switch(cmd) {
-		case HIFI_MISC_IOCTL_PCM_GAIN: {
-			struct misc_io_pcm_buf_param buf;
 
-			logd("ioctl: HIFI_MISC_IOCTL_PCM_GAIN.\n");
-			if (copy_from_user(&buf, data32, sizeof(buf))) {
-				ret = -EINVAL;
-				logd("HIFI_MISC_IOCTL_PCM_GAIN: couldn't copy misc_io_pcm_buf_param\n");
-				break;
-			}
-			send_pcm_data_to_dsp((void *)buf.buf, buf.buf_size);
-			}
-			break;
+	case HIFI_MISC_IOCTL_PCM_GAIN:
+	{
+		struct misc_io_pcm_buf_param buf;
 
-		case HIFI_MISC_IOCTL_ASYNCMSG:
-			logd("ioctl: HIFI_MISC_IOCTL_ASYNCMSG.\n");
-			ret = hifi_dsp_async_cmd((unsigned long)data32);
+		logd("ioctl: HIFI_MISC_IOCTL_PCM_GAIN.\n");
+		if (copy_from_user(&buf, data32, sizeof(buf))) {
+			ret = -EINVAL;
+			logd("HIFI_MISC_IOCTL_PCM_GAIN: couldn't copy misc_io_pcm_buf_param\n");
 			break;
+		}
+		send_pcm_data_to_dsp((void *)buf.buf, buf.buf_size);
+	}
+	break;
+	
+	case HIFI_MISC_IOCTL_XAF_IPC_MSG_SEND:
+	{
+		struct xf_proxy_msg xaf_msg;
 
-		case HIFI_MISC_IOCTL_SYNCMSG:
-			logd("ioctl: HIFI_MISC_IOCTL_SYNCMSG.\n");
-			ret = down_interruptible(&s_misc_sem);
-			if (ret != 0)
-			{
-				loge("SYNCMSG wake up by other irq err:%d.\n",ret);
-				goto out;
-			}
-			ret = hifi_dsp_sync_cmd((unsigned long)data32);
-			up(&s_misc_sem);
+		logi("ioctl: HIFI_MISC_IOCTL_XAF_IPC_MSG_SEND.\n");
+		if (copy_from_user(&xaf_msg, data32, sizeof(xaf_msg))) {
+			ret = -EINVAL;
+			logd("HIFI_MISC_IOCTL_XAF_IPC_MSG_SEND: couldn't copy xf_proxy_msg\n");
 			break;
+		}
+		send_xaf_ipc_msg_to_dsp(&xaf_msg);
+	}
+	break;
+	
+	case HIFI_MISC_IOCTL_XAF_IPC_MSG_RECV:
+	{
+		struct xf_proxy_msg xaf_msg;
 
-		case HIFI_MISC_IOCTL_SENDDATA_SYNC:
-			logd("ioctl: HIFI_MISC_IOCTL_SENDDATA_SYNC.\n");
-			ret = down_interruptible(&s_misc_sem);
-			if (ret != 0)
-			{
-				loge("SENDDATA_SYNC wake up by other irq err:%d.\n",ret);
-				goto out;
-			}
-			ret = hifi_dsp_senddata_sync_cmd((unsigned long)data32); /*not used by now*/
-			up(&s_misc_sem);
-			break;
+		read_xaf_ipc_msg_from_dsp(&xaf_msg, xaf_msg.length);
 
-		case HIFI_MISC_IOCTL_GET_PHYS:
-			logd("ioctl: HIFI_MISC_IOCTL_GET_PHYS.\n");
-			ret = hifi_dsp_get_phys_cmd((unsigned long)data32);
-			break;
+		logi("ioctl: HIFI_MISC_IOCTL_XAF_IPC_MSG_RECV.\n");
+		if (copy_to_user(data32, &xaf_msg, sizeof(xaf_msg))) {
+			ret = -EINVAL;
+			logd("HIFI_MISC_IOCTL_XAF_IPC_MSG_RECV: couldn't copy xf_proxy_msg\n");
+		}
+	}
+	break;
 
-		case HIFI_MISC_IOCTL_WRITE_PARAMS : /* write algo param to hifi*/
-			ret = hifi_dsp_write_param((unsigned long)data32);
-			break;
+	case HIFI_MISC_IOCTL_ASYNCMSG:
+		logd("ioctl: HIFI_MISC_IOCTL_ASYNCMSG.\n");
+		ret = hifi_dsp_async_cmd((unsigned long)data32);
+		break;
 
-		case HIFI_MISC_IOCTL_DUMP_HIFI:
-			logi("ioctl: HIFI_MISC_IOCTL_DUMP_HIFI.\n");
-			ret = hifi_dsp_dump_hifi((void __user *)arg);
-			break;
+	case HIFI_MISC_IOCTL_SYNCMSG:
+		logd("ioctl: HIFI_MISC_IOCTL_SYNCMSG.\n");
+		ret = down_interruptible(&s_misc_sem);
+		if (ret != 0) {
+			loge("SYNCMSG wake up by other irq err:%d.\n", ret);
+			goto out;
+		}
+		ret = hifi_dsp_sync_cmd((unsigned long)data32);
+		up(&s_misc_sem);
+		break;
 
-		case HIFI_MISC_IOCTL_DISPLAY_MSG:
-			logi("ioctl: HIFI_MISC_IOCTL_DISPLAY_MSG.\n");
-			ret = hifi_get_dmesg((void __user *)arg);
-			break;
+	case HIFI_MISC_IOCTL_SENDDATA_SYNC:
+		logd("ioctl: HIFI_MISC_IOCTL_SENDDATA_SYNC.\n");
+		ret = down_interruptible(&s_misc_sem);
+		if (ret != 0)
+		{
+			loge("SENDDATA_SYNC wake up by other irq err:%d.\n",ret);
+			goto out;
+		}
+		ret = hifi_dsp_senddata_sync_cmd((unsigned long)data32); /*not used by now*/
+		up(&s_misc_sem);
+		break;
 
-		case HIFI_MISC_IOCTL_GET_VOICE_BSD_PARAM:
-			logi("ioctl:HIFI_MISC_IOCTL_GET_VOICE_BSD_PARAM.\n");
-			ret = hifi_om_get_voice_bsd_param(data32);
-			break;
-		case HIFI_MISC_IOCTL_WAKEUP_THREAD:
-			logi("ioctl: HIFI_MISC_IOCTL_WAKEUP_THREAD.\n");
-			ret = hifi_dsp_wakeup_read_thread((unsigned long)data32);
-			break;
-		case HIFI_MISC_IOCTL_WAKEUP_PCM_READ_THREAD: 
-			logi("ioctl: HIFI_MISC_IOCTL_WAKEUP_PCM_READ_THREAD.\n");
-			ret = hifi_dsp_wakeup_pcm_read_thread((unsigned long)data32);
-			break;
-		default:
-			ret = (long)ERROR;
-			loge("ioctl: Invalid CMD =0x%x.\n", (unsigned int)cmd);
-			break;
+	case HIFI_MISC_IOCTL_GET_PHYS:
+		logd("ioctl: HIFI_MISC_IOCTL_GET_PHYS.\n");
+		ret = hifi_dsp_get_phys_cmd((unsigned long)data32);
+		break;
+
+	case HIFI_MISC_IOCTL_WRITE_PARAMS : /* write algo param to hifi*/
+		ret = hifi_dsp_write_param((unsigned long)data32);
+		break;
+
+	case HIFI_MISC_IOCTL_DUMP_HIFI:
+		logi("ioctl: HIFI_MISC_IOCTL_DUMP_HIFI.\n");
+		ret = hifi_dsp_dump_hifi((void __user *)arg);
+		break;
+
+	case HIFI_MISC_IOCTL_DISPLAY_MSG:
+		logi("ioctl: HIFI_MISC_IOCTL_DISPLAY_MSG.\n");
+		ret = hifi_get_dmesg((void __user *)arg);
+		break;
+
+	case HIFI_MISC_IOCTL_GET_VOICE_BSD_PARAM:
+		logi("ioctl:HIFI_MISC_IOCTL_GET_VOICE_BSD_PARAM.\n");
+		ret = hifi_om_get_voice_bsd_param(data32);
+		break;
+	case HIFI_MISC_IOCTL_WAKEUP_THREAD:
+		logi("ioctl: HIFI_MISC_IOCTL_WAKEUP_THREAD.\n");
+		ret = hifi_dsp_wakeup_read_thread((unsigned long)data32);
+		break;
+
+	case HIFI_MISC_IOCTL_WAKEUP_PCM_READ_THREAD: 
+		logi("ioctl: HIFI_MISC_IOCTL_WAKEUP_PCM_READ_THREAD.\n");
+		ret = hifi_dsp_wakeup_pcm_read_thread((unsigned long)data32);
+		break;
+	default:
+		ret = (long)ERROR;
+		loge("ioctl: Invalid CMD =0x%x.\n", (unsigned int)cmd);
+		break;
 	}
 out:
 	OUT_FUNCTION;

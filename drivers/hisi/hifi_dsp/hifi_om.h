@@ -18,6 +18,7 @@
 #ifndef __HIFI_OM_H__
 #define __HIFI_OM_H__
 
+
 #ifdef __cplusplus
 #if __cplusplus
 extern "C" {
@@ -41,6 +42,7 @@ extern "C" {
 #define HIFIDEBUG_DSPDUMPLOG_PROC_FILE                "dspdumplog"
 #define HIFIDEBUG_FAULTINJECT_PROC_FILE               "dspfaultinject"
 #define HIFIDEBUG_RESETOPTION_PROC_FILE               "resetsystem"
+#define HIKEY_AP_DSP_MSG_MAX_LEN 100
 
 #ifndef LOG_TAG
 #define LOG_TAG "hifi_misc "
@@ -277,11 +279,26 @@ typedef struct {
 	unsigned int level_num;
 } debug_level_com;
 
-typedef struct _hifi_str_cmd {
+struct hikey_ap2dsp_msg_head {
+	unsigned int head_protect_word;
+	unsigned int msg_num;
+	unsigned int read_pos;
+	unsigned int write_pos;
+};
+
+struct hikey_ap2dsp_msg_body {
 	unsigned short msg_id;
-	unsigned short str_len; /*length of string, include \0 */
-	char           str[0];
-} hifi_str_cmd;
+	unsigned short msg_len; /*size of the whole message*/
+	union {
+		char msg_content[0];
+		struct xf_proxy_msg xf_dsp_msg;
+	};
+};
+
+struct hikey_msg_with_content {
+	struct hikey_ap2dsp_msg_body msg_info;
+	char msg_content[HIKEY_AP_DSP_MSG_MAX_LEN];
+};
 
 struct hifi_effect_info_stru {
 	unsigned int	effect_id;
@@ -385,6 +402,10 @@ int hifi_get_dmesg(void __user *arg);
 int hifi_om_get_voice_bsd_param(void __user * uaddr);
 void hifi_om_rev_data_handle(int type, const unsigned char *addr, unsigned int len);
 int send_pcm_data_to_dsp(void __user *buf, unsigned int size);
+struct xf_proxy_msg;
+int send_xaf_ipc_msg_to_dsp(struct xf_proxy_msg *xaf_msg);
+int read_xaf_ipc_msg_from_dsp(void *buf, unsigned int size);
+
 #ifdef __cplusplus
 #if __cplusplus
 }
