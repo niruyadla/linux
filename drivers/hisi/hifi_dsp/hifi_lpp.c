@@ -848,6 +848,7 @@ error1:
 static int hifi_misc_open(struct inode *finode, struct file *fd)
 {
 	logi("open device.\n");
+	load_hifi_img_by_misc();
 	return OK;
 }
 

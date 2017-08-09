@@ -405,6 +405,7 @@ int send_pcm_data_to_dsp(void __user *buf, unsigned int size);
 struct xf_proxy_msg;
 int send_xaf_ipc_msg_to_dsp(struct xf_proxy_msg *xaf_msg);
 int read_xaf_ipc_msg_from_dsp(void *buf, unsigned int size);
+int load_hifi_img_by_misc(void);
 
 #ifdef __cplusplus
 #if __cplusplus

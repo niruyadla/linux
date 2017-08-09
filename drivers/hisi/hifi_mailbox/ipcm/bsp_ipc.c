@@ -202,7 +202,6 @@ irqreturn_t DRV_k3IpcIntHandler_Autoack(void)
 
 	if (u32IntStat & BIT_ENABLE(mailBoxNum)) {
 		if (K3_IPC_MODE(ipcBase, mailBoxNum) & BIT_ENABLE(K3_IPC_MODE_AUTOACK)) {
-			printk("func:%s: Receive autoack int\n", __func__);
 
 			K3_IPC_SOURCE(ipcBase, mailBoxNum) = BIT_ENABLE(source);
 		}
